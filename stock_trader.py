@@ -2,8 +2,9 @@ import time
 import json
 from datetime import datetime
 import akshare as ak
-from playsound import playsound
 import os
+import tkinter as tk
+from tkinter import messagebox
 
 class StockTrader:
     def __init__(self, initial_capital=7000):
@@ -12,9 +13,8 @@ class StockTrader:
         self.trade_history = []  # 交易历史
         self.buy_history = []  # 买入历史价格
         self.data_file = 'trade_history.json'
-        self.sound_dir = os.path.join(os.path.dirname(__file__), 'sounds')
-        self.buy_sound = os.path.join(self.sound_dir, 'buy.wav')
-        self.sell_sound = os.path.join(self.sound_dir, 'sell.wav')
+        self.root = tk.Tk()
+        self.root.withdraw()  # 隐藏主窗口
         self.load_history()
 
     def load_history(self):
@@ -75,40 +75,92 @@ class StockTrader:
 
     def buy(self, price):
         """执行买入操作"""
-        if self.capital >= price:
-            self.capital -= price
-            self.holdings += 1
-            self.buy_history.append(price)
-            trade = {
-                'type': 'buy',
-                'price': price,
-                'quantity': 1,
-                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'remaining_capital': self.capital
-            }
-            self.trade_history.append(trade)
-            self.save_history()
-            print(f"买入1股，价格：{price}，剩余资金：{self.capital:.2f}")
-            playsound(self.buy_sound)
+        confirm = messagebox.askyesno("确认买入", f"当前市场价: {price}\n确认要买入吗?")
+        if not confirm:
+            print("取消买入操作")
+            return
+        
+        price_dialog = tk.Toplevel()
+        price_dialog.title("输入成交价格")
+        price_dialog.geometry("300x150")
+        price_dialog.transient(self.root)  # 设置为root的临时窗口
+        price_dialog.grab_set()  # 模态对话框
+        
+        price_var = tk.StringVar()
+        tk.Label(price_dialog, text="请输入实际成交价格:").pack(pady=10)
+        price_entry = tk.Entry(price_dialog, textvariable=price_var)
+        price_entry.pack(pady=5)
+        
+        def submit():
+            try:
+                manual_price = float(price_var.get())
+                if self.capital >= manual_price:
+                    self.capital -= manual_price
+                    self.holdings += 1
+                    self.buy_history.append(manual_price)
+                    trade = {
+                        'type': 'buy',
+                        'price': manual_price,
+                        'quantity': 1,
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'remaining_capital': self.capital
+                    }
+                    self.trade_history.append(trade)
+                    self.save_history()
+                    print(f"买入1股，价格：{manual_price}，剩余资金：{self.capital:.2f}")
+                    messagebox.showinfo("交易成功", "买入成功！")
+                    price_dialog.destroy()
+                else:
+                    messagebox.showerror("错误", "资金不足")
+            except ValueError:
+                messagebox.showerror("错误", "请输入有效的价格")
+        
+        submit_btn = tk.Button(price_dialog, text="确认", command=submit)
+        submit_btn.pack(pady=10)
 
     def sell(self, price):
         """执行卖出操作"""
         if self.holdings > 0:
-            self.capital += price
-            self.holdings -= 1
-            trade = {
-                'type': 'sell',
-                'price': price,
-                'quantity': 1,
-                'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                'remaining_capital': self.capital
-            }
-            self.trade_history.append(trade)
-            if self.holdings == 0:
-                self.buy_history = []  # 清空买入历史
-            self.save_history()
-            print(f"卖出1股，价格：{price}，剩余资金：{self.capital:.2f}")
-            playsound(self.sell_sound)
+            confirm = messagebox.askyesno("确认卖出", f"当前市场价: {price}\n确认要卖出吗?")
+            if not confirm:
+                print("取消卖出操作")
+                return
+            
+            price_dialog = tk.Toplevel()
+            price_dialog.title("输入成交价格")
+            price_dialog.geometry("300x150")
+            price_dialog.transient(self.root)  # 设置为root的临时窗口
+            price_dialog.grab_set()  # 模态对话框
+            
+            price_var = tk.StringVar()
+            tk.Label(price_dialog, text="请输入实际成交价格:").pack(pady=10)
+            price_entry = tk.Entry(price_dialog, textvariable=price_var)
+            price_entry.pack(pady=5)
+            
+            def submit():
+                try:
+                    manual_price = float(price_var.get())
+                    self.capital += manual_price
+                    self.holdings -= 1
+                    trade = {
+                        'type': 'sell',
+                        'price': manual_price,
+                        'quantity': 1,
+                        'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'remaining_capital': self.capital
+                    }
+                    self.trade_history.append(trade)
+                    if self.holdings == 0:
+                        self.buy_history = []  # 清空买入历史
+                    self.save_history()
+                    print(f"卖出1股，价格：{manual_price}，剩余资金：{self.capital:.2f}")
+                    messagebox.showinfo("交易成功", "卖出成功！")
+                    price_dialog.destroy()
+                except ValueError:
+                    messagebox.showerror("错误", "请输入有效的价格")
+            
+            submit_btn = tk.Button(price_dialog, text="确认", command=submit)
+            submit_btn.pack(pady=10)
 
     def run(self):
         """运行交易程序"""

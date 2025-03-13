@@ -13,12 +13,32 @@
             "quantity": 1,
             "timestamp": "2025-03-13 14:18:28",
             "remaining_capital": 5995.5
+        },
+        {
+            "type": "sell",
+            "price": 504.0,
+            "quantity": 1,
+            "timestamp": "2025-03-13 14:30:42",
+            "remaining_capital": 6499.5
+        },
+        {
+            "type": "sell",
+            "price": 504.0,
+            "quantity": 1,
+            "timestamp": "2025-03-13 14:30:55",
+            "remaining_capital": 7003.5
+        },
+        {
+            "type": "buy",
+            "price": 504.0,
+            "quantity": 1,
+            "timestamp": "2025-03-13 14:38:38",
+            "remaining_capital": 6499.5
         }
     ],
     "buy_history": [
-        503.0,
-        501.5
+        504.0
     ],
-    "capital": 5995.5,
-    "holdings": 2
+    "capital": 6499.5,
+    "holdings": 1
 }
