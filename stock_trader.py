@@ -132,12 +132,26 @@ class StockTrader:
             price_dialog.transient(self.root)  # 设置为root的临时窗口
             price_dialog.grab_set()  # 模态对话框
             
+            # 创建frame来容纳输入控件
+            input_frame = tk.Frame(price_dialog)
+            input_frame.pack(pady=10)
+            
             price_var = tk.StringVar()
-            tk.Label(price_dialog, text="请输入实际成交价格:").pack(pady=10)
-            price_entry = tk.Entry(price_dialog, textvariable=price_var)
+            tk.Label(input_frame, text="请输入实际成交价格:").pack(pady=5)
+            price_entry = tk.Entry(input_frame, textvariable=price_var)
             price_entry.pack(pady=5)
             
+            # 创建按钮frame
+            button_frame = tk.Frame(price_dialog)
+            button_frame.pack(pady=10)
+            
+            def cancel():
+                price_dialog.destroy()
+            
             def submit():
+                if not price_var.get().strip():
+                    messagebox.showerror("错误", "请输入价格")
+                    return
                 try:
                     manual_price = float(price_var.get())
                     self.capital += manual_price
@@ -159,8 +173,21 @@ class StockTrader:
                 except ValueError:
                     messagebox.showerror("错误", "请输入有效的价格")
             
-            submit_btn = tk.Button(price_dialog, text="确认", command=submit)
-            submit_btn.pack(pady=10)
+            submit_btn = tk.Button(button_frame, text="确认", command=submit, width=10)
+            submit_btn.pack(side=tk.LEFT, padx=5)
+            
+            cancel_btn = tk.Button(button_frame, text="取消", command=cancel, width=10)
+            cancel_btn.pack(side=tk.LEFT, padx=5)
+            
+            # 绑定回车键到提交功能
+            price_entry.bind('<Return>', lambda event: submit())
+            # 绑定Escape键到取消功能
+            price_dialog.bind('<Escape>', lambda event: cancel())
+            
+            # 设置焦点到输入框
+            price_entry.focus()
+            
+            price_dialog.destroy()
 
     def run(self):
         """运行交易程序"""
@@ -179,6 +206,16 @@ class StockTrader:
                 print(f"当前价格：{current_price}")
                 print(f"当前资金：{self.capital:.2f}")
                 print(f"当前持股：{self.holdings}")
+
+                # 计算并显示盈利情况
+                profit_info = self.calculate_profit(current_price)
+                print(f"\n====== 盈利统计 ======")
+                print(f"已实现收益：{profit_info['realized_profit']:.2f}")
+                print(f"未实现收益：{profit_info['unrealized_profit']:.2f}")
+                print(f"总收益：{profit_info['total_profit']:.2f}")
+                print(f"总资产：{profit_info['total_assets']:.2f}")
+                print(f"收益率：{profit_info['profit_rate']:.2f}%")
+                print(f"=====================\n")
 
                 if self.should_buy(current_price):
                     self.buy(current_price)
@@ -199,6 +236,42 @@ class StockTrader:
             except Exception as e:
                 print(f"发生错误：{e}")
                 time.sleep(10)  # 发生错误时等待10秒
+
+    def calculate_profit(self, current_price):
+        """计算当前盈利情况"""
+        # 计算已实现收益（已完成的交易的盈亏）
+        realized_profit = 0
+        total_investment = 7000  # 初始资金
+
+        # 遍历交易历史计算已实现收益
+        for trade in self.trade_history:
+            if trade['type'] == 'buy':
+                realized_profit -= trade['price']
+            else:  # sell
+                realized_profit += trade['price']
+
+        # 计算未实现收益（当前持仓的理论盈亏）
+        unrealized_profit = 0
+        if self.holdings > 0 and current_price:
+            # 使用当前市场价格计算未实现收益
+            unrealized_profit = self.holdings * current_price - sum(self.buy_history)
+
+        # 计算总资产
+        total_assets = self.capital
+        if self.holdings > 0 and current_price:
+            total_assets += self.holdings * current_price
+
+        # 计算总收益和收益率（改为总资产/初始资金）
+        total_profit = realized_profit + unrealized_profit
+        profit_rate = (total_assets / total_investment - 1) * 100
+
+        return {
+            'realized_profit': realized_profit,
+            'unrealized_profit': unrealized_profit,
+            'total_profit': total_profit,
+            'total_assets': total_assets,
+            'profit_rate': profit_rate
+        }
 
 if __name__ == '__main__':
     trader = StockTrader()
